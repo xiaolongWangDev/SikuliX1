@@ -118,12 +118,14 @@ class ButtonCapture extends ButtonOnToolbar implements ActionListener, Cloneable
   public void update(EventSubject es) {
     Debug.log(3, "ButtonCapture: update");
     ScreenImage simg = null;
+    Location targetOffset = null;
     OverlayCapturePrompt ocp = null;
     if (null == es) {
       simg = sImgNonLocal;
     } else {
       ocp = (OverlayCapturePrompt) es;
       simg = ocp.getSelection();
+      targetOffset = ocp.getTargetOffset();
       Screen.closePrompt();
     }
     String filename = null;
@@ -161,26 +163,26 @@ class ButtonCapture extends ButtonOnToolbar implements ActionListener, Cloneable
       }
     }
     Settings.OverwriteImages = saveOverwrite;
-    captureCompleted(fullpath);
+    captureCompleted(fullpath, targetOffset);
     if (ocp != null) {
       Screen.resetPrompt(ocp);
     }
     SikuliIDE.showAgain();
   }
 
-  public void captureCompleted(String imgFullPath) {
+  public void captureCompleted(String imgFullPath, Location targetOffset) {
     Element src = getSrcElement();
     if (imgFullPath != null) {
       Debug.log(3, "captureCompleted: " + imgFullPath);
       if (src == null) {
         if (_codePane == null) {
           if (_lbl == null) {
-            insertAtCursor(SikuliIDE.getInstance().getCurrentCodePane(), imgFullPath);
+            insertAtCursor(SikuliIDE.getInstance().getCurrentCodePane(), imgFullPath, targetOffset);
           } else {
             _lbl.setFile(imgFullPath);
           }
         } else {
-          insertAtCursor(_codePane, imgFullPath);
+          insertAtCursor(_codePane, imgFullPath, targetOffset);
         }
       } else {
         replaceButton(src, imgFullPath);
@@ -280,13 +282,13 @@ class ButtonCapture extends ButtonOnToolbar implements ActionListener, Cloneable
     return true;
   }
 
-  protected void insertAtCursor(EditorPane pane, String imgFilename) {
+  protected void insertAtCursor(EditorPane pane, String imgFilename, Location targetOffset) {
     String img = "\"" + (new File(imgFilename)).getName() + "\"";
     if (!pane.showThumbs) {
       pane.insertString(img);
     } else {
       if (PreferencesUser.getInstance().getPrefMoreImageThumbs()) {
-        EditorPatternButton comp = EditorPatternButton.createFromFilename(pane, imgFilename, null);
+        EditorPatternButton comp = EditorPatternButton.createFromString(pane, String.format("Pattern(\"%s\").targetOffset(%s,%s)",imgFilename, targetOffset.x, targetOffset.y), null);
         if (comp != null) {
           pane.insertComponent(comp);
         }

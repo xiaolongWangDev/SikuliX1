@@ -367,7 +367,7 @@ public class SikuliIDE extends JFrame implements InvocationHandler {
     }
     Debug.log(lvl, "IDE startup: %4.1f seconds %s", (new Date().getTime() - start) / 1000.0, j9Message);
     Debug.unsetWithTimeElapsed();
-    Debug.reset();
+ //   Debug.reset();
 
     stopSplash();
     setVisible(true);
