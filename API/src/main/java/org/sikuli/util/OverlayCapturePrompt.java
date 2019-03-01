@@ -3,96 +3,58 @@
  */
 package org.sikuli.util;
 
-import java.awt.*;
-import java.awt.Image;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseMotionAdapter;
-import java.awt.image.BufferedImage;
-import java.awt.image.RasterFormatException;
-import java.awt.image.RescaleOp;
-import java.io.IOException;
-import javax.imageio.ImageIO;
-import javax.swing.*;
-
 import org.sikuli.basics.Debug;
-import org.sikuli.script.*;
+import org.sikuli.script.IScreen;
+import org.sikuli.script.RunTime;
+import org.sikuli.script.Screen;
+import org.sikuli.script.ScreenImage;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 
 /**
  * INTERNAL USE implements the screen overlay used with the capture feature
  */
-public class OverlayCapturePrompt extends JFrame  implements EventSubject {
+public class OverlayCapturePrompt extends JFrame implements EventSubject {
 
   final static float MIN_DARKER_FACTOR = 0.6f;
   final static long MSG_DISPLAY_TIME = 2000;
   final static long WIN_FADE_IN_TIME = 200;
 
-  private static final int anchor_icon_width = 40;
-  private static final int anchor_icon_height = 40;
+  protected static final Font fontMsg = new Font("Arial", Font.PLAIN, 60);
+  protected static final Color selFrameColor = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+  protected static final Color selCrossColor = new Color(1.0f, 0.0f, 0.0f, 0.6f);
+  protected static final Color screenFrameColor = new Color(1.0f, 0.0f, 0.0f, 0.6f);
+  protected Rectangle screenFrame = null;
+  protected static final BasicStroke strokeScreenFrame = new BasicStroke(5);
+  protected static final BasicStroke _StrokeMeasurement = new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 1, new float[]{10,10}, 0);
+  protected static final BasicStroke bs = new BasicStroke(1);
 
-  private static final int target_icon_width = 40;
-  private static final int target_icon_height = 40;
+  protected EventObserver captureObserver = null;
+  protected IScreen scrOCP;
+  protected BufferedImage scr_img = null;
+  protected BufferedImage scr_img_darker = null;
+  protected BufferedImage bi = null;
+  protected float darker_factor;
 
-  static final Font fontMsg = new Font("Arial", Font.PLAIN, 60);
-  static final Color selFrameColor = new Color(1.0f, 1.0f, 1.0f, 1.0f);
-  static final Color selCrossColor = new Color(1.0f, 0.0f, 0.0f, 0.6f);
-  static final Color screenFrameColor = new Color(1.0f, 0.0f, 0.0f, 0.6f);
-  private Rectangle screenFrame = null;
-  static final BasicStroke strokeScreenFrame = new BasicStroke(5);
-  static final BasicStroke _StrokeMeasurement = new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 1, new float[]{10,10}, 0);
-  static final BasicStroke bs = new BasicStroke(1);
-  private EventObserver captureObserver = null;
-  private IScreen scrOCP;
-  private BufferedImage scr_img = null;
-  private BufferedImage scr_img_darker = null;
-  private BufferedImage bi = null;
-  private float darker_factor;
-  private Rectangle rectSelection;
-  private int srcScreenId = -1;
-  private Location _tar = new Location(0, 0);
-  private Location srcScreenLocation = null;
-  private Location destScreenLocation = null;
-  private Location _tar_offset = new Location(0, 0);
-  private int srcx, srcy, destx, desty;
-  private boolean canceled = false;
-  private String promptMsg = "";
-  private boolean dragging = false;
-  private boolean hasFinished = false;
-  private boolean hasStarted = false;
-  private boolean mouseMoves = false;
-  private int scr_img_type = BufferedImage.TYPE_INT_RGB;
-  private double scr_img_scale = 1;
-  private Rectangle scr_img_rect = null;
-  private ScreenImage scr_img_original = null;
+  protected int srcScreenId = -1;
 
-  private Image anchorIcon = null;
-  private Image targetIcon = null;
+  protected boolean canceled = false;
+  protected String promptMsg = "";
+  protected boolean dragging = false;
+  protected boolean hasFinished = false;
+  protected boolean hasStarted = false;
 
-  private boolean isLocalScreen = true;
-  private boolean reference_object_selected = false;
+  protected int scr_img_type = BufferedImage.TYPE_INT_RGB;
+  protected double scr_img_scale = 1;
+  protected Rectangle scr_img_rect = null;
+  protected ScreenImage scr_img_original = null;
 
-//  private JPanel _panel = null;
-//  private Graphics2D _currG2D = null;
-
-  {
-    try {
-      BufferedImage originAnchor = ImageIO.read(getClass().getClassLoader().getResource("icons/anchor.png"));
-      this.anchorIcon = originAnchor.getScaledInstance(anchor_icon_width, anchor_icon_height,Image.SCALE_SMOOTH);
-    } catch (IOException e) {
-      Debug.error("Failed to load anchor image");
-    }
-
-    try {
-      BufferedImage originAnchor = ImageIO.read(getClass().getClassLoader().getResource("icons/target_red.png"));
-      this.targetIcon = originAnchor.getScaledInstance(target_icon_width, target_icon_height,Image.SCALE_SMOOTH);
-    } catch (IOException e) {
-      Debug.error("Failed to load target image");
-    }
-  }
+  protected boolean isLocalScreen = true;
 
   public OverlayCapturePrompt(IScreen scr) {
-//    super();
     Debug.log(3, "TRACE: OverlayCapturePrompt: init: S(%d)", scr.getID());
     scrOCP = scr;
     canceled = false;
@@ -101,127 +63,15 @@ public class OverlayCapturePrompt extends JFrame  implements EventSubject {
     setAlwaysOnTop(true);
 
     setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
-    rectSelection = new Rectangle();
 
     if (scr.isOtherScreen()) {
       isLocalScreen = false;
     }
 
-
-
-//    _panel = new javax.swing.JPanel() {
-//      @Override
-//      protected void paintComponent(Graphics g) {
-//        if (g instanceof Graphics2D) {
-//          Graphics2D g2d = (Graphics2D) g;
-//          _currG2D = g2d;
-//        } else {
-//          super.paintComponent(g);
-//        }
-//      }
-//    };
-//    _panel.setLayout(null);
-//    add(_panel);
-
-    addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseClicked(java.awt.event.MouseEvent e) {
-        _tar.x = e.getPoint().x;
-        _tar.y = e.getPoint().y;
-        repaint();
-        reference_object_selected = false;
-      }
-      @Override
-      public void mousePressed(java.awt.event.MouseEvent e) {
-        if (scr_img == null) {
-          return;
-        }
-        if (e.getButton() != java.awt.event.MouseEvent.BUTTON1) {
-          return;
-        }
-        hasStarted = true;
-        destx = srcx = e.getX();
-        desty = srcy = e.getY();
-        if (isLocalScreen) {
-          srcScreenId = scrOCP.getIdFromPoint(srcx, srcy);
-          srcScreenLocation = new Location(srcx + scrOCP.getX(), srcy + scrOCP.getY());
-          Debug.log(3, "CapturePrompt: started at (%d,%d) as %s on %d", srcx, srcy,
-                  srcScreenLocation.toStringShort(), srcScreenId);
-        }
-        promptMsg = null;
-        repaint();
-      }
-
-      @Override
-      public void mouseReleased(java.awt.event.MouseEvent e) {
-        if (scr_img == null) {
-          return;
-        }
-        if (e.getButton() != java.awt.event.MouseEvent.BUTTON1) {
-          canceled = true;
-          Debug.log(3, "CapturePrompt: aborted: not using left mouse button");
-        } else {
-          if (isLocalScreen) {
-            destScreenLocation = new Location(destx + scrOCP.getX(), desty + scrOCP.getY());
-            Debug.log(3, "CapturePrompt: finished at (%d,%d) as %s on %d", destx, desty,
-              destScreenLocation.toStringShort(), srcScreenId);
-          }
-        }
-      }
-    });
-
-    addMouseMotionListener(new MouseMotionAdapter() {
-      @Override
-      public void mouseMoved(java.awt.event.MouseEvent e) {
-        if (promptMsg == null) {
-          return;
-        }
-        if (!mouseMoves) {
-          mouseMoves = true;
-          return;
-        }
-        promptMsg = null;
-        repaint();
-      }
-
-      @Override
-      public void mouseDragged(java.awt.event.MouseEvent e) {
-        if (!hasStarted || scr_img == null) {
-          return;
-        }
-        if (!dragging) {
-          if (promptMsg != null) {
-            Screen.closePrompt((Screen) scrOCP);
-          }
-          dragging = true;
-        }
-        destx = e.getX();
-        desty = e.getY();
-        repaint();
-        reference_object_selected = true;
-      }
-    });
-
-    addKeyListener(new KeyAdapter() {
-      @Override
-      public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-          hasFinished = canceled = true;
-          Debug.log(3, "CapturePrompt: aborted using key ESC");
-          setVisible(false);
-          notifyObserver();
-        } else if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-          if(_tar.x != 0 || _tar.y != 0 ){
-            if(reference_object_selected){
-              hasFinished = true;
-              setVisible(false);
-              notifyObserver();
-            }
-          }
-        }
-      }
-    });
+    bindListeners();
   }
+
+  protected void bindListeners(){}
 
   public int getScrID() {
     return srcScreenId;
@@ -306,52 +156,28 @@ public class OverlayCapturePrompt extends JFrame  implements EventSubject {
     }
   }
 
-  public Location getTargetOffset(){
-    if (canceled) {
-      return null;
+  @Override
+  public void paint(Graphics g) {
+    if (scr_img != null) {
+      Graphics2D g2dWin = (Graphics2D) g;
+      if (bi == null) {
+        bi = new BufferedImage(scr_img_rect.width, scr_img_rect.height, scr_img_type);
+      }
+      Graphics2D bfG2 = bi.createGraphics();
+      bfG2.drawImage(scr_img_darker, 0, 0, this);
+      drawMessage(bfG2);
+      drawCustom(g2dWin, bfG2);
+      g2dWin.drawImage(bi, 0, 0, this);
+      setVisible(true);
+    } else {
+      setVisible(false);
     }
-    return new Location(_tar_offset);
   }
 
-  public ScreenImage getSelection() {
-    if (canceled) {
-      return null;
-    }
-    BufferedImage cropImg = cropSelection();
-    if (cropImg == null) {
-      return null;
-    }
-    rectSelection.x += scrOCP.getX();
-    rectSelection.y += scrOCP.getY();
-    ScreenImage ret = new ScreenImage(rectSelection, cropImg);
-    return ret;
+  protected void drawCustom(Graphics2D g2dWin, Graphics2D bfG2) {
   }
 
-  private BufferedImage cropSelection() {
-    int w = rectSelection.width, h = rectSelection.height;
-    if (w <= 0 || h <= 0) {
-      return null;
-    }
-    int x = rectSelection.x;
-    int y = rectSelection.y;
-    if (!isLocalScreen && scr_img_scale != 1) {
-      x = (int) (x / scr_img_scale);
-      y = (int) (y / scr_img_scale);
-      w = (int) (w / scr_img_scale);
-      h = (int) (h / scr_img_scale);
-    }
-    BufferedImage crop = new BufferedImage(w, h, scr_img_type);
-    Graphics2D crop_g2d = crop.createGraphics();
-    try {
-      crop_g2d.drawImage(scr_img_original.getImage().getSubimage(x, y, w, h), null, 0, 0);
-    } catch (RasterFormatException e) {
-      Debug.error("OverlayCapturePrompt: cropSelection: RasterFormatException", e.getMessage());
-    }
-    crop_g2d.dispose();
-    return crop;
-  }
-
-  void drawMessage(Graphics2D g2d) {
+  protected void drawMessage(Graphics2D g2d) {
     if (promptMsg == null) {
       return;
     }
@@ -371,56 +197,7 @@ public class OverlayCapturePrompt extends JFrame  implements EventSubject {
     }
   }
 
-  private void drawSelection(Graphics2D g2d) {
-    Debug.log(3, "draw Selection");
-    if(_tar.x != 0 || _tar.y != 0){
-      if (srcx != destx || srcy != desty) {
-        int x1 = (srcx < destx) ? srcx : destx;
-        int y1 = (srcy < desty) ? srcy : desty;
-        int x2 = (srcx > destx) ? srcx : destx;
-        int y2 = (srcy > desty) ? srcy : desty;
-
-        rectSelection.x = x1;
-        rectSelection.y = y1;
-        rectSelection.width = (x2 - x1) + 1;
-        rectSelection.height = (y2 - y1) + 1;
-        if (rectSelection.width > 0 && rectSelection.height > 0) {
-          g2d.drawImage(scr_img.getSubimage(x1, y1, x2 - x1 + 1, y2 - y1 + 1),
-                  null, x1, y1);
-        }
-
-        g2d.setColor(selFrameColor);
-        g2d.setStroke(bs);
-        g2d.draw(rectSelection);
-        int cx = (x1 + x2) / 2;
-        int cy = (y1 + y2) / 2;
-        g2d.drawString("Reference Object", x2 - 100, y2 - 4);
-
-        g2d.drawImage(anchorIcon,cx - anchor_icon_width/2, cy - anchor_icon_height/2, this);
-
-        g2d.setColor(selCrossColor);
-        g2d.setStroke(_StrokeMeasurement);
-
-        _tar_offset = new Location(_tar.x - cx, _tar.y - cy);
-        Rectangle measurementRect = new Rectangle(Math.min(cx, _tar.x), Math.min(cy, _tar.y), Math.abs(_tar.x - cx), Math.abs(_tar.y - cy));
-
-        g2d.draw(measurementRect);
-
-        g2d.drawLine(_tar.x, _tar.y, cx, cy);
-
-        g2d.drawString("Reference Object", x2 - 100, y2 - 4);
-        g2d.drawString("(" + _tar_offset.x + "," + _tar_offset.y + ")", _tar.x - 50 , _tar.y - 25);
-
-        if (isLocalScreen && Screen.getNumberScreens() > 1) {
-          drawScreenFrame(g2d, srcScreenId);
-        }
-      }
-
-    }
-
-  }
-
-  private void drawScreenFrame(Graphics2D g2d, int scrId) {
+  protected void drawScreenFrame(Graphics2D g2d, int scrId) {
     if (!isLocalScreen) {
       return;
     }
@@ -438,40 +215,5 @@ public class OverlayCapturePrompt extends JFrame  implements EventSubject {
       screenFrame.height -= sw * 2;
     }
     g2d.draw(screenFrame);
-  }
-
-  void drawTarget(Graphics2D g2d) {
-    final int CROSS_LEN = 20 / 2;
-//    Point l = convertScreenToView(_tar);
-    int x = _tar.x;
-    int y = _tar.y;
-
-    g2d.drawImage(targetIcon,x - target_icon_width/2, y - target_icon_height/2, this);
-
-//    g2d.setColor(Color.BLACK);
-//    g2d.drawLine(x - CROSS_LEN, y + 1, x + CROSS_LEN, y + 1);
-//    g2d.drawLine(x + 1, y - CROSS_LEN, x + 1, y + CROSS_LEN);
-//    g2d.setColor(Color.WHITE);
-//    g2d.drawLine(x - CROSS_LEN, y, x + CROSS_LEN, y);
-//    g2d.drawLine(x, y - CROSS_LEN, x, y + CROSS_LEN);
-  }
-
-  @Override
-  public void paint(Graphics g) {
-    if (scr_img != null) {
-      Graphics2D g2dWin = (Graphics2D) g;
-      if (bi == null) {
-        bi = new BufferedImage(scr_img_rect.width, scr_img_rect.height, scr_img_type);
-      }
-      Graphics2D bfG2 = bi.createGraphics();
-      bfG2.drawImage(scr_img_darker, 0, 0, this);
-      drawMessage(bfG2);
-      drawSelection(bfG2);
-      drawTarget(bfG2);
-      g2dWin.drawImage(bi, 0, 0, this);
-      setVisible(true);
-    } else {
-      setVisible(false);
-    }
   }
 }

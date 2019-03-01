@@ -5,9 +5,10 @@
 package org.sikuli.android;
 
 import org.sikuli.basics.Debug;
-import org.sikuli.basics.Settings;
 import org.sikuli.script.*;
-import org.sikuli.util.*;
+import org.sikuli.util.EventObserver;
+import org.sikuli.util.EventSubject;
+import org.sikuli.util.OverlayCapturePrompt;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -254,7 +255,7 @@ public class ADBScreen extends Region implements EventObserver, IScreen {
         continue;
       }
       if (prompt.isComplete()) {
-        simg = prompt.getSelection();
+        simg = null; //prompt.getSelection();
         if (simg != null) {
           lastScreenImage = simg;
         }

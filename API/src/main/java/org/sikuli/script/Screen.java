@@ -3,14 +3,14 @@
  */
 package org.sikuli.script;
 
-import java.awt.*;
-import java.util.Date;
-
 import org.sikuli.basics.Debug;
 import org.sikuli.basics.Settings;
 import org.sikuli.util.EventObserver;
 import org.sikuli.util.OverlayCapturePrompt;
 import org.sikuli.util.ScreenHighlighter;
+
+import java.awt.*;
+import java.util.Date;
 
 /**
  * A screen represents a physical monitor with its coordinates and size according to the global
@@ -630,6 +630,11 @@ public class Screen extends Region implements IScreen {
     Screen.getPrimaryScreen().userCapture(message);
   }
 
+  public static void doPrompt(String message, EventObserver obs, Class<? extends OverlayCapturePrompt> promptClass) {
+    captureObserver = obs;
+    Screen.getPrimaryScreen().userCapture(message, promptClass);
+  }
+
   public static void closePrompt() {
     for (int is = 0; is < Screen.getNumberScreens(); is++) {
       if (!Screen.getScreen(is).hasPrompt()) {
@@ -687,6 +692,34 @@ public class Screen extends Region implements IScreen {
     return userCapture("");
   }
 
+  public ScreenImage userCapture(final String message, final Class<? extends OverlayCapturePrompt> promptClass) {
+    if (!setActiveCapturePrompt()) {
+      return null;
+    }
+    Debug.log(3, "TRACE: Screen: userCapture");
+    waitPrompt = true;
+
+    Thread th = new Thread() {
+      @Override
+      public void run() {
+        String msg = message.isEmpty() ? promptMsg : message;
+        for (int is = 0; is < Screen.getNumberScreens(); is++) {
+          if (ignorePrimaryAtCapture && is == 0) {
+            continue;
+          }
+          try {
+            Screen.getScreen(is).prompt = promptClass.getConstructor(IScreen.class).newInstance(Screen.getScreen(is));
+            } catch (Exception e) {
+              throw new RuntimeException(String.format("Failed to create new instance of type %s", promptClass), e);
+            }
+          Screen.getScreen(is).prompt.addObserver(captureObserver);
+          Screen.getScreen(is).prompt.prompt(msg);
+        }
+      }
+    };
+    return startCaptureThread(th);
+  }
+
   /**
    * interactive capture with given message: lets the user capture a screen image using the mouse to
    * draw the rectangle
@@ -715,6 +748,10 @@ public class Screen extends Region implements IScreen {
         }
       }
     };
+    return startCaptureThread(th);
+  }
+
+  private ScreenImage startCaptureThread(Thread th) {
     th.start();
     if (captureObserver != null) {
       return null;
@@ -734,10 +771,10 @@ public class Screen extends Region implements IScreen {
         }
         if (ocp.isComplete()) {
           closePrompt(Screen.getScreen(is));
-          simg = ocp.getSelection();
-          if (simg != null) {
-            Screen.getScreen(is).lastScreenImage = simg;
-          }
+//          simg = ocp.getSelection();
+//          if (simg != null) {
+//            Screen.getScreen(is).lastScreenImage = simg;
+//          }
           ocp.close();
           Screen.getScreen(is).prompt = null;
           isComplete = true;

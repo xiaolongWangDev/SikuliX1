@@ -3,19 +3,17 @@
  */
 package org.sikuli.vnc;
 
+import com.sikulix.vnc.VNCClient;
 import org.sikuli.basics.Debug;
-import org.sikuli.basics.Settings;
 import org.sikuli.script.*;
 import org.sikuli.util.OverlayCapturePrompt;
-import org.sikuli.util.ScreenHighlighter;
 
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.*;
-
-import com.sikulix.vnc.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VNCScreen extends Region implements IScreen {
   private VNCClient client;
@@ -265,7 +263,7 @@ public class VNCScreen extends Region implements IScreen {
         break;
       }
       if (prompt.isComplete()) {
-        simg = prompt.getSelection();
+        simg = null;//prompt.getSelection();
         if (simg != null) {
           lastScreenImage = simg;
         }
