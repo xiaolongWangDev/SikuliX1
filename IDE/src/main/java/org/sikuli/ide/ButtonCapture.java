@@ -4,24 +4,25 @@
 package org.sikuli.ide;
 
 //import org.sikuli.android.ADBScreen;
+
 import org.sikuli.android.ADBScreen;
-import org.sikuli.basics.PreferencesUser;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.File;
-import java.net.*;
-import javax.swing.*;
-import javax.swing.text.*;
 import org.sikuli.basics.Debug;
 import org.sikuli.basics.FileManager;
-import org.sikuli.script.*;
-import org.sikuli.script.Sikulix;
-import org.sikuli.util.OverlayCapturePrompt;
+import org.sikuli.basics.PreferencesUser;
 import org.sikuli.basics.Settings;
+import org.sikuli.script.Sikulix;
+import org.sikuli.script.*;
 import org.sikuli.util.EventObserver;
 import org.sikuli.util.EventSubject;
+import org.sikuli.util.OverlayCapturePrompt;
 
-import static org.sikuli.script.Sikulix.popup;
+import javax.swing.*;
+import javax.swing.text.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.net.URL;
 
 class ButtonCapture extends ButtonOnToolbar implements ActionListener, Cloneable, EventObserver {
 
@@ -124,8 +125,8 @@ class ButtonCapture extends ButtonOnToolbar implements ActionListener, Cloneable
       simg = sImgNonLocal;
     } else {
       ocp = (OverlayCapturePrompt) es;
-      simg = ocp.getSelection();
-      targetOffset = ocp.getTargetOffset();
+//      simg = ocp.getSelection();
+//      targetOffset = ocp.getTargetOffset();
       Screen.closePrompt();
     }
     String filename = null;

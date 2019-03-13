@@ -2315,7 +2315,7 @@ public class SikuliIDE extends JFrame implements InvocationHandler {
     @Override
     public void update(EventSubject es) {
       OverlayCapturePrompt ocp = (OverlayCapturePrompt) es;
-      ScreenImage simg = ocp.getSelection();
+      ScreenImage simg = null/*ocp.getSelection()*/;
       Screen.closePrompt();
       Screen.resetPrompt(ocp);
       captureComplete(simg);
