@@ -858,4 +858,15 @@ public class Screen extends Region implements IScreen {
   public Location newLocation(int x, int y) {
     return new Location(x, y).setOtherScreen(this);
   }
+
+  // Test bed customizations
+
+  public static GraphicsDevice[] getMonitors(){
+    return gdevs;
+  }
+
+  public static void init() {
+    initScreens(true);
+  }
+
 }
