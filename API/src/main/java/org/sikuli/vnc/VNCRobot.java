@@ -3,14 +3,14 @@
  */
 package org.sikuli.vnc;
 
+import com.dragondawn.vncconnector.model.event.KeyButtonEvent;
+import com.dragondawn.vncconnector.model.event.PointerEvent;
 import org.sikuli.basics.Settings;
 import org.sikuli.script.*;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -157,21 +157,13 @@ class VNCRobot implements IRobot {
   }
 
   private void pressKey(int key) {
-    try {
-      screen.getClient().keyDown(key);
-      pressedKeys.add(key);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    screen.getVncConnector().sendKeyEvent(new KeyButtonEvent(true, key));
+    pressedKeys.add(key);
   }
 
   private void releaseKey(int key) {
-    try {
-      screen.getClient().keyUp(key);
-      pressedKeys.remove(key);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    screen.getVncConnector().sendKeyEvent(new KeyButtonEvent(false, key));
+    pressedKeys.remove(key);
   }
 
   private int charToXlib(char c) {
@@ -582,12 +574,9 @@ class VNCRobot implements IRobot {
 
   @Override
   public void mouseMove(int x, int y) {
-    try {
-      screen.getClient().mouseEvent(mouseButtons, x, y);
+      screen.getVncConnector().sendPointerEvent(new PointerEvent((byte)mouseButtons, x, y));
       mouseX = x;
       mouseY = y;
-    } catch (IOException e) {
-    }
   }
 
   @Override

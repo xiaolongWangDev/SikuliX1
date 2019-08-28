@@ -3,10 +3,11 @@
  */
 package org.sikuli.script;
 
-import org.sikuli.android.ADBScreen;
-import org.sikuli.basics.*;
+import org.sikuli.basics.Debug;
+import org.sikuli.basics.FileManager;
+import org.sikuli.basics.PreferencesUser;
+import org.sikuli.basics.Settings;
 import org.sikuli.util.JythonHelper;
-import org.sikuli.util.ScreenHighlighter;
 import org.sikuli.util.SikulixFileChooser;
 import org.sikuli.vnc.VNCScreen;
 
@@ -641,7 +642,7 @@ public class Sikulix {
    * @return a VNCScreen object
    */
   public static VNCScreen vncStart(String theIP, int thePort, String password, int cTimeout, int timeout) {
-    return VNCScreen.start(theIP, thePort, password, cTimeout, timeout);
+      throw new RuntimeException("Not supported");
   }
 
   /**
@@ -655,6 +656,6 @@ public class Sikulix {
    * @return a VNCScreen object
    */
   public static VNCScreen vncStart(String theIP, int thePort, int cTimeout, int timeout) {
-    return VNCScreen.start(theIP, thePort, cTimeout, timeout);
+    throw new RuntimeException("Not supported");
   }
 }
